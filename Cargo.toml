@@ -2,20 +2,19 @@
 name = "mdns-responder"
 version = "0.2.0"
 authors = ["Paul Lietar <paul@lietar.net>"]
-
 description = "Rust mDNS responder"
-repository = "https://github.com/plietar/rust-mdns"
+repository = "https://github.com/EternalDeiwos/rust-mdns"
 readme = "README.md"
 license = "MIT"
 
 [dependencies]
 byteorder = "1.0"
 futures = "0.1.6"
-libc = "0.2"
+libc = "0.2.35"
 log = "0.3"
 multimap = "0.3"
 net2 = "0.2"
-nix = "0.8"
+nix = "0.9.0"
 rand = "0.3"
 tokio-core = "0.1.1"
 dns-parser = { git = "https://github.com/plietar/dns-parser" }
