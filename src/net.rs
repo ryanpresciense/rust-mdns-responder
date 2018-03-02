@@ -1,8 +1,10 @@
-use libc::{self, c_char, c_int, c_uint, size_t};
+extern crate nix;
+
 use std::io;
 use std::ptr::null_mut;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use byteorder::{BigEndian, ByteOrder};
+use self::nix::libc::{self, ifaddrs, c_char, c_int, c_uint, size_t};
 
 pub fn gethostname() -> io::Result<String> {
     unsafe {
@@ -24,12 +26,12 @@ pub fn gethostname() -> io::Result<String> {
     }
 }
 
-pub struct GetIfAddrs(*mut libc::ifaddrs, *mut libc::ifaddrs);
+pub struct GetIfAddrs(*mut ifaddrs, *mut ifaddrs);
 
 pub fn getifaddrs() -> GetIfAddrs {
     let mut ptr = null_mut();
     unsafe {
-        libc::getifaddrs(&mut ptr as *mut *mut libc::ifaddrs);
+        libc::getifaddrs(&mut ptr as *mut *mut ifaddrs);
     }
 
     GetIfAddrs(ptr, ptr)
@@ -65,7 +67,7 @@ pub struct Interface {
 }
 
 impl Interface {
-    fn new(ifa: &libc::ifaddrs) -> Interface {
+    fn new(ifa: &ifaddrs) -> Interface {
         let addr = unsafe {
             if ifa.ifa_addr.is_null() {
                 None
