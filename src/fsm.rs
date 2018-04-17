@@ -100,11 +100,10 @@ impl <AF: AddressFamily> FSM<AF> {
 
         for question in packet.questions {
             if question.qclass == QueryClass::IN || question.qclass == QueryClass::Any {
-                if question.qu {
-                    unicast_builder = self.handle_question(&question, unicast_builder);
-                } else {
+                if !question.qu {
                     multicast_builder = self.handle_question(&question, multicast_builder);
                 }
+                unicast_builder = self.handle_question(&question, unicast_builder);
             }
         }
 
