@@ -84,7 +84,7 @@ impl Responder {
     }
 
     pub fn with_handle(handle: &Handle) -> io::Result<(Responder, BoxFuture<(), io::Error>)> {
-        let mut hostname = try!(net::gethostname());
+        let mut hostname = net::gethostname()?;
         if !hostname.ends_with(".local") {
             hostname.push_str(".local");
         }
@@ -111,7 +111,7 @@ impl Responder {
 
         let commands = CommandSender(commands);
         let responder = Responder {
-            services: services,
+            services,
             commands: RefCell::new(commands.clone()),
             shutdown: Arc::new(Shutdown(commands)),
         };
@@ -137,8 +137,8 @@ impl Responder {
         let svc = ServiceData {
             typ: Name::from_str(format!("{}.local", svc_type)).unwrap(),
             name: Name::from_str(format!("{}.{}.local", svc_name, svc_type)).unwrap(),
-            port: port,
-            txt: txt,
+            port,
+            txt,
         };
 
         self.commands.borrow_mut()
@@ -149,7 +149,7 @@ impl Responder {
             .register(svc);
 
         Service {
-            id: id,
+            id,
             commands: self.commands.borrow().clone(),
             services: self.services.clone(),
             _shutdown: self.shutdown.clone(),
@@ -186,9 +186,9 @@ impl CommandSender {
 
     fn send_unsolicited(&mut self, svc: ServiceData, ttl: u32, include_ip: bool) {
         self.send(Command::SendUnsolicited {
-            svc: svc,
-            ttl: ttl,
-            include_ip: include_ip,
+            svc,
+            ttl,
+            include_ip,
         });
     }
 

@@ -1,10 +1,11 @@
 extern crate nix;
 
 use std::io;
+use std::ffi::{CStr, CString};
 use std::ptr::null_mut;
 use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use byteorder::{BigEndian, ByteOrder};
-use self::nix::libc::{self, ifaddrs, c_char, c_int, c_uint, size_t};
+use self::nix::libc::{self, ifaddrs, if_nametoindex, c_char, c_int, c_uint, size_t};
 
 pub fn gethostname() -> io::Result<String> {
     unsafe {
@@ -62,6 +63,8 @@ impl Drop for GetIfAddrs {
 }
 
 pub struct Interface {
+    name: CString,
+    index: u32,
     addr: Option<SocketAddr>,
     flags: c_uint,
 }
@@ -98,10 +101,27 @@ impl Interface {
             }
         };
 
+        let name = unsafe {
+            CString::from(CStr::from_ptr(ifa.ifa_name as *const c_char))
+        };
+        let index = unsafe {
+            u32::from_be(if_nametoindex(name.as_ptr()))
+        };
+
         Interface {
-            addr: addr,
+            name,
+            index,
+            addr,
             flags: ifa.ifa_flags,
         }
+    }
+
+    pub fn name(&self) -> &CStr {
+        &self.name
+    }
+
+    pub fn index(&self) -> u32 {
+        self.index
     }
 
     #[allow(dead_code)]

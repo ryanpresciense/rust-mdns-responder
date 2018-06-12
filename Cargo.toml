@@ -1,9 +1,9 @@
 [package]
 name = "mdns-responder"
-version = "0.2.0"
-authors = ["Paul Lietar <paul@lietar.net>"]
+version = "0.3.0"
+authors = ["Paul Lietar <paul@lietar.net>", "Alex Zarundyi <hedgar2017@gmail.com>"]
 description = "Rust mDNS responder"
-repository = "https://github.com/EternalDeiwos/rust-mdns"
+repository = "https://github.com/hedgar2017/rust-mdns-responder"
 readme = "README.md"
 license = "MIT"
 
