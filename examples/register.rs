@@ -3,7 +3,7 @@ extern crate mdns_responder;
 extern crate dns_parser;
 
 pub fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
 
     let responder = mdns_responder::Responder::new().unwrap();
     let _svc = responder.register(

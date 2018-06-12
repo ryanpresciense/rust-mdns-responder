@@ -38,10 +38,27 @@ impl AddressFamily for Inet {
         IpAddr::V4(Ipv4Addr::new(224,0,0,251))
     }
     fn join_multicast(socket: &UdpSocket) -> io::Result<()> {
-        socket.join_multicast_v4(
-            &Ipv4Addr::new(224,0,0,251),
-            &Ipv4Addr::new(0,0,0,0),
-        )
+        use net;
+        let mut bound = false;
+        for iface in net::getifaddrs() {
+            match iface.ip() {
+                Some(IpAddr::V4(ip)) => {
+                    trace!("Joining IPv4 {:?} to the multicast group", ip);
+                    socket.join_multicast_v4(&Ipv4Addr::new(224,0,0,251),&ip)
+                        .map_err(|error| warn!("Failed to join to the multicast group: {}", error.to_string()))
+                        .map(|_| bound = true)
+                },
+                _ => continue,
+            };
+        };
+        if !bound {
+            warn!("Failed joining to every multicast group. Falling back to 0.0.0.0");
+            return socket.join_multicast_v4(
+                &Ipv4Addr::new(224,0,0,251),
+                &Ipv4Addr::new(0,0,0,0)
+            );
+        };
+        Ok(())
     }
     fn v6() -> bool {
         false
