@@ -88,7 +88,7 @@ impl AddressFamily for Inet6 {
                     if ip.is_loopback() {
                         continue;
                     }
-                    trace!("Joining to the IPv6 multicast group on interface {:?}", iface.name());
+                    trace!("Joining to the IPv6 multicast group on interface {:?} with index {}", iface.name(), iface.index());
                     let _ = socket.join_multicast_v6(&Ipv6Addr::new(0xff02,0,0,0,0,0,0,0xfb),iface.index())
                         .map_err(|error| trace!("Failed to join to the IPv6 multicast group: {}", error.to_string()))
                         .map(|_| bound = true);

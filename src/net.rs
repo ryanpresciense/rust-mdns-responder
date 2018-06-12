@@ -105,7 +105,7 @@ impl Interface {
             CString::from(CStr::from_ptr(ifa.ifa_name as *const c_char))
         };
         let index = unsafe {
-            u32::from_be(if_nametoindex(name.as_ptr()))
+            u32::from_le(if_nametoindex(name.as_ptr()))
         };
 
         Interface {
