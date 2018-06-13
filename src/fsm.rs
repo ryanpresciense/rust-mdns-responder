@@ -4,6 +4,8 @@ use std::io;
 use std::io::ErrorKind::WouldBlock;
 use std::marker::PhantomData;
 use std::net::{IpAddr, SocketAddr};
+use std::sync::{Arc, Mutex};
+use std::thread;
 use futures::{Poll, Async, Future, Stream};
 use futures::sync::mpsc;
 use tokio::net::UdpSocket;
@@ -27,7 +29,7 @@ pub enum Command {
 }
 
 pub struct FSM<AF: AddressFamily> {
-    socket: UdpSocket,
+    socket: Arc<Mutex<UdpSocket>>,
     services: Services,
     commands: mpsc::UnboundedReceiver<Command>,
     outgoing: VecDeque<(Vec<u8>, SocketAddr)>,
@@ -43,12 +45,20 @@ impl <AF: AddressFamily> FSM<AF> {
         let (tx, rx) = mpsc::unbounded();
 
         let fsm = FSM {
-            socket,
+            socket: Arc::new(Mutex::new(socket)),
             services: services.clone(),
             commands: rx,
             outgoing: VecDeque::new(),
             _af: PhantomData,
         };
+
+        let socket_arc = fsm.socket.clone();
+        thread::spawn(move || {
+            loop {
+                AF::join_multicast(&*socket_arc.lock().unwrap());
+                thread::sleep(::std::time::Duration::from_secs(10));
+            };
+        });
 
         Ok((fsm, tx))
     }
@@ -56,7 +66,7 @@ impl <AF: AddressFamily> FSM<AF> {
     fn recv_packets(&mut self) -> io::Result<()> {
         let mut buf = [0u8; 4096];
         loop {
-            let (bytes, addr) = match self.socket.recv_from(&mut buf) {
+            let (bytes, addr) = match self.socket.lock().unwrap().recv_from(&mut buf) {
                 Ok((bytes, addr)) => (bytes, addr),
                 Err(ref ioerr) if ioerr.kind() == WouldBlock => break,
                 Err(err) => return Err(err),
@@ -265,15 +275,20 @@ impl <AF: AddressFamily> Future for FSM<AF> {
             }
         }
 
-        while let Async::Ready(()) = self.socket.poll_read() {
-            self.recv_packets()?;
+        loop {
+            let async = self.socket.lock().unwrap().poll_read();
+            if let Async::Ready(()) = async {
+                self.recv_packets()?;
+            } else {
+                break;
+            }
         }
 
         loop {
             if let Some(&(ref response, ref addr)) = self.outgoing.front() {
                 trace!("sending packet to {:?}", addr);
 
-                match self.socket.send_to(response, addr) {
+                match self.socket.lock().unwrap().send_to(response, addr) {
                     Ok(_) => (),
                     Err(ref ioerr) if ioerr.kind() == WouldBlock => break,
                     Err(err) => warn!("error sending packet {:?}", err),

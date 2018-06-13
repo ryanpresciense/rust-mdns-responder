@@ -63,10 +63,10 @@ impl Drop for GetIfAddrs {
 }
 
 pub struct Interface {
-    name: CString,
-    index: u32,
-    addr: Option<SocketAddr>,
-    flags: c_uint,
+    name            : CString,
+    index           : u32,
+    addr            : Option<SocketAddr>,
+    flags           : c_uint,
 }
 
 impl Interface {
@@ -116,6 +116,7 @@ impl Interface {
         }
     }
 
+    #[allow(dead_code)]
     pub fn name(&self) -> &CStr {
         &self.name
     }
