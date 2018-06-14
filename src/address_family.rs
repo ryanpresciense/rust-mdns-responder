@@ -58,33 +58,40 @@ impl AddressFamily for Inet {
                     if ip.is_loopback() {
                         continue;
                     }
-                    let _ = socket.join_multicast_v4(&Ipv4Addr::new(224,0,0,251),&ip)
-//                        .map_err(|error| {
-//                            trace!(
-//                                "Failed to join to the IPv4 multicast group on interface {} with index {}: {}",
-//                                ip,
-//                                iface.index(),
-//                                error.to_string(),
-//                            )
-//                        })
+                    let _ = socket.join_multicast_v4(
+                        &Ipv4Addr::new(224,0,0,251),
+                        &ip)
+                        .map_err(|error| {
+                            if error.kind() != io::ErrorKind::AddrInUse {
+                                trace!(
+                                    "Failed to join to the IPv4 multicast group on interface {} with index {}: {}",
+                                    ip,
+                                    iface.index(),
+                                    error.to_string(),
+                                );
+                            };
+                        })
                         .map(|_| {
-//                            trace!(
-//                                "Joined to the IPv4 multicast group on interface {} with index {}",
-//                                ip,
-//                                iface.index(),
-//                            );
+                            trace!(
+                                "Joined to the IPv4 multicast group on interface {} with index {}",
+                                ip,
+                                iface.index(),
+                            );
                             joined = true;
                         });
                 },
                 _ => continue,
-            }
+            };
         };
         if !joined {
-            //trace!("Failed to join to IPv4 multicast group on any interface. Falling back to 0.0.0.0");
             let _ = socket.join_multicast_v4(
                 &Ipv4Addr::new(224,0,0,251),
                 &Ipv4Addr::new(0,0,0,0)
-            );//.map_err(|error| trace!("Failed to join on 0.0.0.0 as well: {}", error.to_string()));
+            ).map_err(|error| {
+                if error.kind() != io::ErrorKind::AddrInUse {
+                    trace!("Failed to join on 0.0.0.0 as well: {}", error.to_string());
+                };
+            });
         };
     }
 
@@ -114,33 +121,40 @@ impl AddressFamily for Inet6 {
                     if ip.is_loopback() {
                         continue;
                     }
-                    let _ = socket.join_multicast_v6(&Ipv6Addr::new(0xff02,0,0,0,0,0,0,0xfb),iface.index())
-//                        .map_err(|error| {
-//                            trace!(
-//                                "Failed to join to the IPv6 multicast group on interface {} with index {}: {}",
-//                                ip,
-//                                iface.index(),
-//                                error.to_string(),
-//                            )
-//                        })
+                    let _ = socket.join_multicast_v6(
+                        &Ipv6Addr::new(0xff02,0,0,0,0,0,0,0xfb),
+                        iface.index())
+                        .map_err(|error| {
+                            if error.kind() != io::ErrorKind::AddrInUse {
+                                trace!(
+                                    "Failed to join to the IPv6 multicast group on interface {} with index {}: {}",
+                                    ip,
+                                    iface.index(),
+                                    error.to_string(),
+                                );
+                            };
+                        })
                         .map(|_| {
-//                            trace!(
-//                                "Joined to the IPv6 multicast group on interface {} with index {}",
-//                                ip,
-//                                iface.index(),
-//                            );
+                            trace!(
+                                "Joined to the IPv6 multicast group on interface {} with index {}",
+                                ip,
+                                iface.index(),
+                            );
                             joined = true;
                         });
                 },
                 _ => continue,
-            }
+            };
         };
         if !joined {
-            //trace!("Failed to join to IPv6 multicast group on any interface. Falling back to ::");
             let _ = socket.join_multicast_v6(
                 &Ipv6Addr::new(0xff02,0,0,0,0,0,0,0xfb),
                 0u32,
-            );//.map_err(|error| trace!("Failed to join on :: as well: {}", error.to_string()));
+            ).map_err(|error| {
+                if error.kind() != io::ErrorKind::AddrInUse {
+                    trace!("Failed to join on :: as well: {}", error.to_string());
+                };
+            });
         };
     }
 
