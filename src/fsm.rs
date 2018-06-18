@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time;
 use futures::{Poll, Async, Future, Stream};
 use futures::sync::mpsc;
 use tokio::net::UdpSocket;
@@ -30,6 +31,7 @@ pub enum Command {
 
 pub struct FSM<AF: AddressFamily> {
     socket: Arc<Mutex<UdpSocket>>,
+    join_handle: Option<thread::JoinHandle<()>>,
     services: Services,
     commands: mpsc::UnboundedReceiver<Command>,
     outgoing: VecDeque<(Vec<u8>, SocketAddr)>,
@@ -42,23 +44,36 @@ impl <AF: AddressFamily> FSM<AF> {
     {
         let std_socket = AF::bind()?;
         let socket = UdpSocket::from_socket(std_socket, handle)?;
+        let socket_arc = Arc::new(Mutex::new(socket));
         let (tx, rx) = mpsc::unbounded();
 
+        let socket_weak = Arc::downgrade(&socket_arc);
+        let handle = thread::spawn(move || {
+            trace!("Joining thread started");
+            'outer: loop {
+                socket_weak.upgrade()
+                    .map(|socket| AF::join_multicast(&socket.lock().unwrap()));
+
+                let start = time::Instant::now();
+                while start.elapsed() <= time::Duration::from_secs(10) {
+                    if let Some(_) = socket_weak.upgrade() {
+                        thread::sleep(::std::time::Duration::from_millis(100));
+                    } else {
+                        break 'outer;
+                    }
+                }
+            };
+            trace!("Joining thread ended");
+        });
+
         let fsm = FSM {
-            socket: Arc::new(Mutex::new(socket)),
+            socket: socket_arc,
+            join_handle: Some(handle),
             services: services.clone(),
             commands: rx,
             outgoing: VecDeque::new(),
             _af: PhantomData,
         };
-
-        let socket_arc = fsm.socket.clone();
-        thread::spawn(move || {
-            loop {
-                AF::join_multicast(&*socket_arc.lock().unwrap());
-                thread::sleep(::std::time::Duration::from_secs(10));
-            };
-        });
 
         Ok((fsm, tx))
     }
@@ -200,6 +215,14 @@ impl <AF: AddressFamily> FSM<AF> {
             let response = builder.build().unwrap_or_else(|x| x);
             let addr = SocketAddr::new(AF::mdns_group(), MDNS_PORT);
             self.outgoing.push_back((response, addr));
+        }
+    }
+}
+
+impl <AF: AddressFamily> Drop for FSM<AF> {
+    fn drop(&mut self) {
+        if let Some(handle) = self.join_handle.take() {
+            let _ = handle.join();
         }
     }
 }
