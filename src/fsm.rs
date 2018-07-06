@@ -164,24 +164,44 @@ impl<AF: AddressFamily> FSM<AF> {
             QueryType::A | QueryType::AAAA | QueryType::All
                 if question.qname == *services.get_hostname() =>
             {
+                debug!(
+                    "sending PTR response: {:?} -> {}",
+                    question.qname,
+                    services.get_hostname()
+                );
                 builder = self.add_ip_rr(services.get_hostname(), builder, DEFAULT_TTL);
             }
             QueryType::PTR => {
-                for svc in services.find_by_type(&question.qname) {
-                    builder = svc.add_ptr_rr(builder, DEFAULT_TTL);
-                    builder = svc.add_srv_rr(services.get_hostname(), builder, DEFAULT_TTL);
-                    builder = svc.add_txt_rr(builder, DEFAULT_TTL);
-                    builder = self.add_ip_rr(services.get_hostname(), builder, DEFAULT_TTL);
+                if question.qname == Name::from_str("_services._dns-sd._udp.local").unwrap() {
+                    for service_type in services.get_types() {
+                        debug!("sending PTR response: {:?}", service_type);
+                        builder = builder.add_answer(
+                            &question.qname,
+                            QueryClass::IN,
+                            DEFAULT_TTL,
+                            &RRData::PTR(service_type.clone()),
+                        );
+                    }
+                } else {
+                    for svc in services.find_by_type(&question.qname) {
+                        debug!("sending PTR response: {:?}", svc);
+                        builder = svc.add_ptr_rr(builder, DEFAULT_TTL);
+                        builder = svc.add_srv_rr(services.get_hostname(), builder, DEFAULT_TTL);
+                        builder = svc.add_txt_rr(builder, DEFAULT_TTL);
+                        builder = self.add_ip_rr(services.get_hostname(), builder, DEFAULT_TTL);
+                    }
                 }
             }
             QueryType::SRV => {
                 if let Some(svc) = services.find_by_name(&question.qname) {
+                    debug!("sending SRV response: {:?}", svc);
                     builder = svc.add_srv_rr(services.get_hostname(), builder, DEFAULT_TTL);
                     builder = self.add_ip_rr(services.get_hostname(), builder, DEFAULT_TTL);
                 }
             }
             QueryType::TXT => {
                 if let Some(svc) = services.find_by_name(&question.qname) {
+                    debug!("sending TXT response: {:?}", svc);
                     builder = svc.add_txt_rr(builder, DEFAULT_TTL);
                 }
             }

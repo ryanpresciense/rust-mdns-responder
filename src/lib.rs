@@ -52,7 +52,7 @@ pub struct Service {
     _shutdown: Arc<Shutdown>,
 }
 
-type ResponderTask = Box<Future<Item=(), Error=io::Error> + Send>;
+type ResponderTask = Box<Future<Item = (), Error = io::Error> + Send>;
 
 impl Responder {
     fn setup_core() -> io::Result<(Core, ResponderTask, Responder)> {
@@ -87,7 +87,9 @@ impl Responder {
         Ok(responder)
     }
 
-    pub fn with_handle(handle: &Handle) -> io::Result<(Responder, Box<Future<Item=(), Error=io::Error> + Send>)> {
+    pub fn with_handle(
+        handle: &Handle,
+    ) -> io::Result<(Responder, Box<Future<Item = (), Error = io::Error> + Send>)> {
         let mut hostname = net::gethostname()?;
         if !hostname.ends_with(".local") {
             hostname.push_str(".local");
@@ -98,7 +100,7 @@ impl Responder {
         let v4 = FSM::<Inet>::new(handle, &services);
         let v6 = FSM::<Inet6>::new(handle, &services);
 
-        let (task, commands) : (ResponderTask, _) = match (v4, v6) {
+        let (task, commands): (ResponderTask, _) = match (v4, v6) {
             (Ok((v4_task, v4_command)), Ok((v6_task, v6_command))) => {
                 let task = v4_task.join(v6_task).map(|((), ())| ());
                 let task = Box::new(task);

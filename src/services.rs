@@ -47,6 +47,10 @@ impl ServicesInner {
         }
     }
 
+    pub fn get_types<'a>(&'a self) -> Vec<&Name<'a>> {
+        self.by_type.keys().collect()
+    }
+
     pub fn register(&mut self, svc: ServiceData) -> usize {
         let mut id = thread_rng().gen::<usize>();
         while self.by_id.contains_key(&id) {
