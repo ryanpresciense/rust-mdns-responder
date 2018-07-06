@@ -118,8 +118,8 @@ impl <AF: AddressFamily> FSM<AF> {
             return;
         }
 
-        let mut unicast_builder = dns_parser::Builder::new_response(packet.header.id, false).move_to::<dns_parser::Answers>();
-        let mut multicast_builder = dns_parser::Builder::new_response(packet.header.id, false).move_to::<dns_parser::Answers>();
+        let mut unicast_builder = dns_parser::Builder::new_response(packet.header.id, true).move_to::<dns_parser::Answers>();
+        let mut multicast_builder = dns_parser::Builder::new_response(packet.header.id, true).move_to::<dns_parser::Answers>();
         unicast_builder.set_max_size(None);
         multicast_builder.set_max_size(None);
 
@@ -199,7 +199,7 @@ impl <AF: AddressFamily> FSM<AF> {
     }
 
     fn send_unsolicited(&mut self, svc: &ServiceData, ttl: u32, include_ip: bool) {
-        let mut builder = dns_parser::Builder::new_response(0, false).move_to::<dns_parser::Answers>();
+        let mut builder = dns_parser::Builder::new_response(0, true).move_to::<dns_parser::Answers>();
         builder.set_max_size(None);
 
         let services = self.services.read().unwrap();
